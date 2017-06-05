@@ -20,6 +20,10 @@ public class HexBinaryCodec implements Codec.BinaryCodec {
 	 * Constructs a codec for reading and writing binary values encoded as hex
 	 * sequences.
 	 * 
+	 * @param minLength
+	 *            the minimal length of binary block to be decoded.
+	 * @param maxLength
+	 *            the maximal length of binary block to be decoded.
 	 */
 	public HexBinaryCodec(int minLength, int maxLength) {
 		this.minLength = minLength;

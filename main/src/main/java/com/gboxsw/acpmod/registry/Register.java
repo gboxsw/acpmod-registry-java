@@ -195,6 +195,8 @@ public final class Register {
 	 *            the identifier of register.
 	 * @param readOnly
 	 *            indicates that the register is read only.
+	 * @param codec
+	 *            the codec used to decode/encode value of register.
 	 */
 	public Register(RegisterCollection registerCollection, int registerId, boolean readOnly, Codec codec) {
 		if (registerCollection == null) {
@@ -402,8 +404,8 @@ public final class Register {
 	/**
 	 * Sets the description of register.
 	 * 
-	 * @param desired
-	 *            description the description.
+	 * @param description
+	 *            the description.
 	 */
 	public void setDescription(String description) {
 		synchronized (lock) {

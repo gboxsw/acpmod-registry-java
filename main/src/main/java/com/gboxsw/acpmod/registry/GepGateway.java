@@ -290,6 +290,13 @@ public final class GepGateway implements Gateway {
 
 	/**
 	 * Executes retrieval of change hint.
+	 * 
+	 * @param registryId
+	 *            the identifier of registry (destination ID of GEP messages).
+	 * @param timeout
+	 *            the maximal amount of time in milliseconds to complete the
+	 *            operation.
+	 * @return the hint (identifier of a modifier register).
 	 */
 	public int getChangeHint(int registryId, long timeout) {
 		// send request and process response
@@ -311,6 +318,18 @@ public final class GepGateway implements Gateway {
 
 	/**
 	 * Executes read of an integer register.
+	 * 
+	 * @param registryId
+	 *            the identifier of registry (destination ID of GEP messages).
+	 * @param registerId
+	 *            the identifier of the register.
+	 * @param timeout
+	 *            the maximal amount of time in milliseconds to complete the
+	 *            operation.
+	 * @return the value of register.
+	 * 
+	 * @throws RuntimeException
+	 *             when operation failed.
 	 */
 	private int readIntegerRegister(int registryId, int registerId, long timeout) throws RuntimeException {
 		if ((registerId < 0) || (registerId >= 128 * 256)) {
@@ -348,6 +367,19 @@ public final class GepGateway implements Gateway {
 
 	/**
 	 * Executes write to an integer register.
+	 * 
+	 * @param registryId
+	 *            the identifier of registry (destination ID of GEP messages).
+	 * @param registerId
+	 *            the identifier of the register.
+	 * @param value
+	 *            the integer value to be written.
+	 * @param timeout
+	 *            the maximal amount of time in milliseconds to complete the
+	 *            operation.
+	 * 
+	 * @throws RuntimeException
+	 *             when operation failed.
 	 */
 	private void writeIntegerRegister(int registryId, int registerId, int value, long timeout) throws RuntimeException {
 		if ((registerId < 0) || (registerId >= 128 * 256)) {
@@ -387,6 +419,18 @@ public final class GepGateway implements Gateway {
 
 	/**
 	 * Executes read of a binary register.
+	 * 
+	 * @param registryId
+	 *            the identifier of registry (destination ID of GEP messages).
+	 * @param registerId
+	 *            the identifier of the register.
+	 * @param timeout
+	 *            the maximal amount of time in milliseconds to complete the
+	 *            operation.
+	 * @return the value of register.
+	 * 
+	 * @throws RuntimeException
+	 *             when operation failed.
 	 */
 	public byte[] readBinaryRegister(int registryId, int registerId, long timeout) {
 		if ((registerId < 0) || (registerId >= 128 * 256)) {
@@ -427,6 +471,16 @@ public final class GepGateway implements Gateway {
 
 	/**
 	 * Executes write of a binary register.
+	 * 
+	 * @param registryId
+	 *            the identifier of registry (destination ID of GEP messages).
+	 * @param registerId
+	 *            the identifier of the register.
+	 * @param value
+	 *            the value to be written.
+	 * @param timeout
+	 *            the maximal amount of time in milliseconds to complete the
+	 *            operation.
 	 */
 	public void writeBinaryRegister(int registryId, int registerId, byte[] value, long timeout) {
 		if ((registerId < 0) || (registerId >= 128 * 256)) {
@@ -473,6 +527,9 @@ public final class GepGateway implements Gateway {
 	 *            request, i.e. to receive the response. Zero or negative value
 	 *            mean that there is no timeout defined for the operation.
 	 * @return the encoded response or null, if no response was received.
+	 * 
+	 * @throws RuntimeException
+	 *             when operation failed.
 	 */
 	private byte[] sendRequest(int registryId, byte[] request, long timeout) throws RuntimeException {
 		synchronized (serialOrderLock) {

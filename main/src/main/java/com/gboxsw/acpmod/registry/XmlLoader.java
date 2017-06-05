@@ -271,7 +271,7 @@ public class XmlLoader {
 	 *            the map where created collections of registers are stored.
 	 * @param registers
 	 *            the list where created registers are stored.
-	 * @return
+	 * @return the created gateway.
 	 */
 	public Gateway loadGatewayFromXml(File xmlFile, Map<String, RegisterCollectionConfig> collections,
 			List<Register> registers) {
@@ -343,7 +343,7 @@ public class XmlLoader {
 					if (collections.containsKey(collectionId)) {
 						throw new RuntimeException("Duplicated identifer of collection: " + collectionId);
 					}
-				
+
 					collections.put(collectionId, info);
 				}
 
@@ -462,6 +462,7 @@ public class XmlLoader {
 	 * @param registerCollection
 	 *            the remote collection of registers that provides access to
 	 *            remote registers.
+	 * @return the list with created registers.
 	 */
 	public List<Register> loadRegistersFromXml(File xmlFile, RegisterCollection registerCollection) {
 		try {
