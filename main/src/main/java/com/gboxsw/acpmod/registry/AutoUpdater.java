@@ -16,7 +16,7 @@ public class AutoUpdater {
 	/**
 	 * Maximal duration of sleep in the update thread in milliseconds.
 	 */
-	private static final long MAX_THREAD_SLEEP = 1000;
+	private static final long MAX_THREAD_SLEEP = 100;
 
 	/**
 	 * State record related to registers of a register collection.

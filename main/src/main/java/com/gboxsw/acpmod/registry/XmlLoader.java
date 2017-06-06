@@ -141,6 +141,7 @@ public class XmlLoader {
 				Map<String, String> completeProperties = new HashMap<>();
 				completeProperties.put("minlength", "0");
 				completeProperties.put("maxlength", "1024");
+				completeProperties.put("spaces", "true");
 				if (properties != null) {
 					completeProperties.putAll(properties);
 				}
@@ -148,7 +149,8 @@ public class XmlLoader {
 				try {
 					// create instance
 					return new HexBinaryCodec(Integer.parseInt(completeProperties.get("minlength")),
-							Integer.parseInt(completeProperties.get("maxlength")));
+							Integer.parseInt(completeProperties.get("maxlength")),
+							Boolean.parseBoolean(completeProperties.get("spaces")));
 				} catch (Exception e) {
 					throw new RuntimeException("Construction of value codec with respect to given properties failed.",
 							e);
