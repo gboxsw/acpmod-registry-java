@@ -61,6 +61,11 @@ public final class GepGateway implements Gateway {
 	private final static byte[] PREPARED_GET_CHANGE_HINT_REQUEST = new byte[] { GET_CHANGE_HINT_REQUEST };
 
 	/**
+	 * An empty payload.
+	 */
+	private final static byte[] EMPTY_PAYLOAD = new byte[0];
+
+	/**
 	 * Remote collection of registers provided by a single device in a GEP based
 	 * network of devices/targets.
 	 */
@@ -77,9 +82,9 @@ public final class GepGateway implements Gateway {
 		private final RequestStatistics statistics = new RequestStatistics();
 
 		@Override
-		public int getChangeHintId(long timeout) {
+		public int getChangeHintId(int confirmedRegisterId, long timeout) {
 			try {
-				int result = GepGateway.this.getChangeHint(registryId, timeout);
+				int result = GepGateway.this.getChangeHint(registryId, confirmedRegisterId, timeout);
 				statistics.countRequest(false);
 				return result;
 			} catch (Exception e) {
@@ -293,23 +298,29 @@ public final class GepGateway implements Gateway {
 	 * 
 	 * @param registryId
 	 *            the identifier of registry (destination ID of GEP messages).
+	 * @param confirmedRegisterId
+	 *            the identifier of a register which is confirmed by the client
+	 *            as read without executing a real reading of a value. If the
+	 *            identifier is negative, no register is confirmed.
 	 * @param timeout
 	 *            the maximal amount of time in milliseconds to complete the
 	 *            operation.
 	 * @return the hint (identifier of a modifier register).
 	 */
-	public int getChangeHint(int registryId, long timeout) {
+	public int getChangeHint(int registryId, int confirmedRegisterId, long timeout) {
+		if (confirmedRegisterId >= 0) {
+			checkRegisterId(confirmedRegisterId);
+		}
+
+		// prepare request
+		byte[] request = (confirmedRegisterId < 0) ? PREPARED_GET_CHANGE_HINT_REQUEST
+				: buildRequest(GET_CHANGE_HINT_REQUEST, confirmedRegisterId, null);
+
 		// send request and process response
 		try {
-			byte[] response = sendRequest(registryId, PREPARED_GET_CHANGE_HINT_REQUEST, timeout);
+			byte[] response = sendRequest(registryId, request, timeout);
+			checkResponse(response);
 
-			if (response == null) {
-				throw new RuntimeException("No response from registry.");
-			}
-
-			if (response[0] != REQUEST_OK_RESPONSE) {
-				throw new RuntimeException("Request failed on registry.");
-			}
 			return decodeNumber(response, 1);
 		} catch (Exception e) {
 			throw new RuntimeException("Retrieval of change hint failed.", e);
@@ -332,33 +343,16 @@ public final class GepGateway implements Gateway {
 	 *             when operation failed.
 	 */
 	private int readIntegerRegister(int registryId, int registerId, long timeout) throws RuntimeException {
-		if ((registerId < 0) || (registerId >= 128 * 256)) {
-			throw new RuntimeException("ID (" + registerId + ") of register is out of range.");
-		}
+		checkRegisterId(registerId);
 
 		// prepare message with request
-		byte[] request = null;
-		if (registerId < 128) {
-			request = new byte[2];
-			request[1] = (byte) registerId;
-		} else {
-			request = new byte[3];
-			request[1] = (byte) ((registerId / 256) | 0x80);
-			request[2] = (byte) (registerId % 256);
-		}
-		request[0] = READ_INT_REGISTRY_REQUEST;
+		byte[] request = buildRequest(READ_INT_REGISTRY_REQUEST, registerId, null);
 
 		// send request and process response
 		try {
 			byte[] response = sendRequest(registryId, request, timeout);
+			checkResponse(response);
 
-			if (response == null) {
-				throw new RuntimeException("No response from registry.");
-			}
-
-			if (response[0] != REQUEST_OK_RESPONSE) {
-				throw new RuntimeException("Request failed on registry.");
-			}
 			return decodeNumber(response, 1);
 		} catch (Exception e) {
 			throw new RuntimeException("Read operation failed.", e);
@@ -382,36 +376,15 @@ public final class GepGateway implements Gateway {
 	 *             when operation failed.
 	 */
 	private void writeIntegerRegister(int registryId, int registerId, int value, long timeout) throws RuntimeException {
-		if ((registerId < 0) || (registerId >= 128 * 256)) {
-			throw new RuntimeException("ID (" + registerId + ") of register is out of range.");
-		}
+		checkRegisterId(registerId);
 
 		// prepare message with request
-		byte[] request;
-		byte[] encodedValue = encodeNumber(value);
-		if (registerId < 128) {
-			request = new byte[2 + encodedValue.length];
-			request[1] = (byte) registerId;
-			System.arraycopy(encodedValue, 0, request, 2, encodedValue.length);
-		} else {
-			request = new byte[3 + encodedValue.length];
-			request[1] = (byte) ((registerId / 256) | 0x80);
-			request[2] = (byte) (registerId % 256);
-			System.arraycopy(encodedValue, 0, request, 3, encodedValue.length);
-		}
-		request[0] = WRITE_INT_REGISTRY_REQUEST;
+		byte[] request = buildRequest(WRITE_INT_REGISTRY_REQUEST, registerId, encodeNumber(value));
 
 		// send request and process response
 		try {
 			byte[] response = sendRequest(registryId, request, timeout);
-
-			if (response == null) {
-				throw new RuntimeException("No response from registry.");
-			}
-
-			if (response[0] != REQUEST_OK_RESPONSE) {
-				throw new RuntimeException("Request failed on registry.");
-			}
+			checkResponse(response);
 		} catch (Exception e) {
 			throw new RuntimeException("Write operation failed.", e);
 		}
@@ -433,33 +406,15 @@ public final class GepGateway implements Gateway {
 	 *             when operation failed.
 	 */
 	public byte[] readBinaryRegister(int registryId, int registerId, long timeout) {
-		if ((registerId < 0) || (registerId >= 128 * 256)) {
-			throw new RuntimeException("ID (" + registerId + ") of register is out of range.");
-		}
+		checkRegisterId(registerId);
 
 		// prepare message with request
-		byte[] request = null;
-		if (registerId < 128) {
-			request = new byte[2];
-			request[1] = (byte) registerId;
-		} else {
-			request = new byte[3];
-			request[1] = (byte) ((registerId / 256) | 0x80);
-			request[2] = (byte) (registerId % 256);
-		}
-		request[0] = READ_BIN_REGISTRY_REQUEST;
+		byte[] request = buildRequest(READ_BIN_REGISTRY_REQUEST, registerId, null);
 
 		// send request and process response
 		try {
 			byte[] response = sendRequest(registryId, request, timeout);
-
-			if (response == null) {
-				throw new RuntimeException("No response from registry.");
-			}
-
-			if (response[0] != REQUEST_OK_RESPONSE) {
-				throw new RuntimeException("Request failed on registry.");
-			}
+			checkResponse(response);
 
 			byte[] result = new byte[response.length - 1];
 			System.arraycopy(response, 1, result, 0, result.length);
@@ -483,35 +438,15 @@ public final class GepGateway implements Gateway {
 	 *            operation.
 	 */
 	public void writeBinaryRegister(int registryId, int registerId, byte[] value, long timeout) {
-		if ((registerId < 0) || (registerId >= 128 * 256)) {
-			throw new RuntimeException("ID (" + registerId + ") of register is out of range.");
-		}
+		checkRegisterId(registerId);
 
 		// prepare message with request
-		byte[] request;
-		if (registerId < 128) {
-			request = new byte[2 + value.length];
-			request[1] = (byte) registerId;
-			System.arraycopy(value, 0, request, 2, value.length);
-		} else {
-			request = new byte[3 + value.length];
-			request[1] = (byte) ((registerId / 256) | 0x80);
-			request[2] = (byte) (registerId % 256);
-			System.arraycopy(value, 0, request, 3, value.length);
-		}
-		request[0] = WRITE_BIN_REGISTRY_REQUEST;
+		byte[] request = buildRequest(WRITE_BIN_REGISTRY_REQUEST, registerId, value);
 
 		// send request and process response
 		try {
 			byte[] response = sendRequest(registryId, request, timeout);
-
-			if (response == null) {
-				throw new RuntimeException("No response from registry.");
-			}
-
-			if (response[0] != REQUEST_OK_RESPONSE) {
-				throw new RuntimeException("Request failed on registry.");
-			}
+			checkResponse(response);
 		} catch (Exception e) {
 			throw new RuntimeException("Write operation failed.", e);
 		}
@@ -599,6 +534,68 @@ public final class GepGateway implements Gateway {
 
 			requestLock.notifyAll();
 		}
+	}
+
+	/**
+	 * Throws an exception, if the register identifier is not valid.
+	 * 
+	 * @param registerId
+	 *            the identifier of a register.
+	 */
+	private static void checkRegisterId(int registerId) {
+		if ((registerId < 0) || (registerId >= 128 * 256)) {
+			throw new RuntimeException("Identifier of register (" + registerId + ") is not valid.");
+		}
+	}
+
+	/**
+	 * Throws the runtime exception when the response is not valid, i.e., the
+	 * request failed.
+	 * 
+	 * @param response
+	 *            the response to be checked.
+	 */
+	private static void checkResponse(byte[] response) {
+		if (response == null) {
+			throw new RuntimeException("No response from registry.");
+		}
+
+		if (response[0] != REQUEST_OK_RESPONSE) {
+			throw new RuntimeException("Request failed on registry.");
+		}
+	}
+
+	/**
+	 * Builds a request containing a given register id and a given (suffix)
+	 * payload.
+	 * 
+	 * @param requestCode
+	 *            the request code.
+	 * @param registerId
+	 *            the identifier of a register.
+	 * @param payload
+	 *            the payload to be attached at the end of the request.
+	 * @return the request.
+	 */
+	private static byte[] buildRequest(int requestCode, int registerId, byte[] payload) {
+		if (payload == null) {
+			payload = EMPTY_PAYLOAD;
+		}
+
+		byte[] request;
+		if (registerId < 128) {
+			request = new byte[2 + payload.length];
+			request[1] = (byte) registerId;
+			System.arraycopy(payload, 0, request, 2, payload.length);
+		} else {
+			request = new byte[3 + payload.length];
+			request[1] = (byte) ((registerId / 256) | 0x80);
+			request[2] = (byte) (registerId % 256);
+			System.arraycopy(payload, 0, request, 3, payload.length);
+		}
+		request[0] = (byte) requestCode;
+
+		return request;
 	}
 
 	/**

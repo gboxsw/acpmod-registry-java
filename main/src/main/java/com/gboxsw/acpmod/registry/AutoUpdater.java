@@ -43,6 +43,12 @@ public class AutoUpdater {
 		long hintOperationTimeout;
 
 		/**
+		 * Identifier of register that was notified as changed but is not
+		 * managed (updated) by this updater.
+		 */
+		int unconfirmedRegisterId;
+
+		/**
 		 * Managed registers of the collection.
 		 */
 		final List<Register> registers = new ArrayList<>();
@@ -57,6 +63,7 @@ public class AutoUpdater {
 			this.registerCollection = new WeakReference<RegisterCollection>(collection);
 			this.hintInterval = hintInterval;
 			this.hintOperationTimeout = hintTimeout;
+			this.unconfirmedRegisterId = -1;
 			lastHintTime = MonotonicClock.INSTANCE.currentTimeMillis();
 		}
 	}
@@ -148,11 +155,16 @@ public class AutoUpdater {
 
 			// execute hint updates if necessary
 			for (CollectionState cs : collectionsWithExpiredHints) {
-				// retrieve timeout and register collections
+				// retrieve timeout, id of unconfirmed register, and register
+				// collections
 				long operationTimeout;
+				int unconfirmedRegisterId;
+
 				RegisterCollection registerCollection;
 				synchronized (lock) {
 					operationTimeout = cs.hintOperationTimeout;
+					unconfirmedRegisterId = cs.unconfirmedRegisterId;
+					cs.unconfirmedRegisterId = -1;
 					registerCollection = cs.registerCollection.get();
 					if (registerCollection == null) {
 						cs.hintInterval = 0;
@@ -163,7 +175,10 @@ public class AutoUpdater {
 				// execute hint request
 				int hintId = -1;
 				try {
-					hintId = registerCollection.getChangeHintId(operationTimeout);
+					hintId = registerCollection.getChangeHintId(unconfirmedRegisterId, operationTimeout);
+					if (hintId < 0) {
+						hintId = -1;
+					}
 				} catch (Exception ignore) {
 					// in case of failure, hint request is skipped
 				}
@@ -180,6 +195,10 @@ public class AutoUpdater {
 									expiredRegisters.add(register);
 								}
 							}
+						}
+
+						if (!hintForManagedRegister) {
+							cs.unconfirmedRegisterId = hintId;
 						}
 					}
 
@@ -353,6 +372,7 @@ public class AutoUpdater {
 			} else {
 				collectionState.hintInterval = hintInterval;
 				collectionState.hintOperationTimeout = hintOperationTimeout;
+				collectionState.unconfirmedRegisterId = -1;
 			}
 
 			lock.notifyAll();
@@ -375,6 +395,7 @@ public class AutoUpdater {
 			CollectionState collectionState = collectionStates.get(registerCollection);
 			if (collectionState != null) {
 				collectionState.hintInterval = 0;
+				collectionState.unconfirmedRegisterId = -1;
 
 				if (collectionState.registers.isEmpty()) {
 					collectionStates.remove(registerCollection);

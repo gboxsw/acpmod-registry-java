@@ -13,18 +13,22 @@ public interface RegisterCollection {
 	public Gateway getGateway();
 
 	/**
-	 * Reads a change hint from register collection. It is the identifier of a
+	 * Reads a change hint from register collection and eventually notifies that
+	 * the client is aware of change of a register. Hint is the identifier of a
 	 * register whose value has been changed but not read.
 	 * 
+	 * @param confirmedRegisterId
+	 *            the identifier of register that was not read, however the
+	 *            client confirms that it is aware of change of this register.
+	 *            If the value is negative, no register will be confirmed.
 	 * @param timeout
 	 *            the maximal amount of time in milliseconds to complete the
 	 *            read operation. Negative value or zero mean that there is no
 	 *            timeout for completing the operation.
-	 * 
 	 * @return the id of changed register or negative value, if no register is
 	 *         marked as changed and unread.
 	 */
-	public int getChangeHintId(long timeout);
+	public int getChangeHintId(int confirmedRegisterId, long timeout);
 
 	/**
 	 * Reads a value from an integer register.
