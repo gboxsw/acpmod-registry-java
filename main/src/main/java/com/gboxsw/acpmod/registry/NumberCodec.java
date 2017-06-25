@@ -71,7 +71,7 @@ public class NumberCodec implements Codec.IntCodec {
 	@Override
 	public int encodeToIntValue(Object localValue) {
 		if (!(localValue instanceof Number)) {
-			throw new RuntimeException("The argument is not a numeric value.");
+			throw new IllegalArgumentException("The argument is not a numeric value.");
 		}
 
 		Number lv = (Number) localValue;

@@ -301,6 +301,7 @@ class MainFrame extends JFrame {
 			loadedGateway = registryLoader.loadGatewayFromXml(fileChooser.getSelectedFile(), loadedRegisterCollections,
 					loadedRegisters);
 		} catch (Exception e) {
+			e.printStackTrace();
 			JOptionPane.showMessageDialog(this, "Loading of gateway configuration failed.", "Error",
 					JOptionPane.ERROR_MESSAGE);
 			return;
@@ -366,7 +367,7 @@ class MainFrame extends JFrame {
 		for (RegisterCollectionConfig cfg : registerCollections.values()) {
 			autoUpdater.disableRegistryHints(cfg.registerCollection);
 		}
-		
+
 		gatewayRunning = false;
 	}
 
@@ -388,6 +389,19 @@ class MainFrame extends JFrame {
 						newValue = Double.parseDouble(newValueString);
 					} catch (NumberFormatException e) {
 						JOptionPane.showMessageDialog(this, "Numeric value is expected.", "Error",
+								JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+				}
+
+				if (Boolean.class.isAssignableFrom(register.getType())) {
+					newValueString = newValueString.trim().toLowerCase();
+					if ("0".equals(newValueString) || "false".equals(newValueString)) {
+						newValue = false;
+					} else if ("1".equals(newValueString) || "true".equals(newValueString)) {
+						newValue = true;
+					} else {
+						JOptionPane.showMessageDialog(this, "Boolean value (true/false/1/0) is expected.", "Error",
 								JOptionPane.ERROR_MESSAGE);
 						return;
 					}

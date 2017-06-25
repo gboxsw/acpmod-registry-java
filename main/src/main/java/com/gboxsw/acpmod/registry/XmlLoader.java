@@ -2,6 +2,7 @@ package com.gboxsw.acpmod.registry;
 
 import java.io.File;
 import java.util.*;
+
 import org.w3c.dom.*;
 
 import com.gboxsw.acpmod.gep.SerialPortSocket;
@@ -130,6 +131,14 @@ public class XmlLoader {
 					throw new RuntimeException("Construction of value codec with respect to given properties failed.",
 							e);
 				}
+			}
+		});
+
+		// default codec factory for boolean values
+		codecFactories.put("boolean", new CodecFactory() {
+			@Override
+			public Codec newCodec(Map<String, String> properties) {
+				return BooleanCodec.INSTANCE;
 			}
 		});
 
