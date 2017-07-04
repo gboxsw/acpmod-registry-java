@@ -186,16 +186,27 @@ public class XmlLoader {
 			public Gateway createGateway(Element settings) {
 				String port;
 				int baudRate, gepId;
+				String initialDelayStr = null;
 				try {
-					port = settings.getElementsByTagName("port").item(0).getTextContent();
-					baudRate = Integer.parseInt(settings.getElementsByTagName("baudrate").item(0).getTextContent());
-					gepId = Integer.parseInt(settings.getElementsByTagName("gepid").item(0).getTextContent());
+					port = readTextOfChild(settings, "port").trim();
+					baudRate = Integer.parseInt(readTextOfChild(settings, "baudrate").trim());
+					gepId = Integer.parseInt(readTextOfChild(settings, "gepid").trim());
+					initialDelayStr = readTextOfChild(settings, "initdelay");
 				} catch (Exception e) {
 					throw new RuntimeException(
 							"Invalid or missing settings (port, baudrate, gepid) for gateway using a serial port.", e);
 				}
 
-				return new GepGateway(new SerialPortSocket(port, baudRate), gepId, true);
+				GepGateway gateway = new GepGateway(new SerialPortSocket(port, baudRate), gepId, true);
+				if (initialDelayStr != null) {
+					try {
+						gateway.setInitialDelay(Long.parseLong(initialDelayStr));
+					} catch (Exception e) {
+						throw new RuntimeException("Invalid value of parameter \"initdelay\"");
+					}
+				}
+
+				return gateway;
 			}
 		});
 
@@ -218,16 +229,27 @@ public class XmlLoader {
 			public Gateway createGateway(Element settings) {
 				String host;
 				int port, gepId;
+				String initialDelayStr = null;
 				try {
-					host = settings.getElementsByTagName("host").item(0).getTextContent();
-					port = Integer.parseInt(settings.getElementsByTagName("port").item(0).getTextContent());
-					gepId = Integer.parseInt(settings.getElementsByTagName("gepid").item(0).getTextContent());
+					host = readTextOfChild(settings, "host").trim();
+					port = Integer.parseInt(readTextOfChild(settings, "port").trim());
+					gepId = Integer.parseInt(readTextOfChild(settings, "gepid").trim());
+					initialDelayStr = readTextOfChild(settings, "initdelay");
 				} catch (Exception e) {
 					throw new RuntimeException(
 							"Invalid or missing settings (host, port, gepid) for gateway using a tcp connection.", e);
 				}
 
-				return new GepGateway(new TCPSocket(host, port), gepId, true);
+				GepGateway gateway = new GepGateway(new TCPSocket(host, port), gepId, true);
+				if (initialDelayStr != null) {
+					try {
+						gateway.setInitialDelay(Long.parseLong(initialDelayStr));
+					} catch (Exception e) {
+						throw new RuntimeException("Invalid value of parameter \"initdelay\"");
+					}
+				}
+
+				return gateway;
 			}
 		});
 	}
@@ -595,6 +617,32 @@ public class XmlLoader {
 		}
 
 		return codecFactory.newCodec(properties);
+	}
+
+	/**
+	 * Returns text content of child with given name.
+	 * 
+	 * @param element
+	 *            the inspected element.
+	 * @param name
+	 *            the name of desired child element.
+	 * @return the text content of desired child element or null, if desired
+	 *         child element does not exist.
+	 */
+	private static String readTextOfChild(Element element, String name) {
+		if (element == null) {
+			return null;
+		}
+
+		NodeList children = element.getChildNodes();
+		for (int i = 0; i < children.getLength(); i++) {
+			Node child = children.item(i);
+			if ((child instanceof Element) && (name.equals(child.getNodeName()))) {
+				return ((Element) child).getTextContent();
+			}
+		}
+
+		return null;
 	}
 
 }

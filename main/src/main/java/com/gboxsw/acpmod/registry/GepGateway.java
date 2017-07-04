@@ -216,6 +216,29 @@ public final class GepGateway implements Gateway {
 	}
 
 	/**
+	 * Sets the initial delay in a new session.
+	 * 
+	 * @param initialDelay
+	 *            the initial delay in milliseconds.
+	 * 
+	 * @see GEPMessenger#setInitialDelay(long)
+	 */
+	public void setInitialDelay(long initialDelay) {
+		messenger.setInitialDelay(initialDelay);
+	}
+
+	/**
+	 * Returns the initial delay in a new session.
+	 * 
+	 * @return the initial delay in milliseconds.
+	 * 
+	 * @see GEPMessenger#getInitialDelay()
+	 */
+	public long getInitialDelay() {
+		return messenger.getInitialDelay();
+	}
+
+	/**
 	 * Starts the session ensuring GEP connection to available remote register
 	 * collections.
 	 */
