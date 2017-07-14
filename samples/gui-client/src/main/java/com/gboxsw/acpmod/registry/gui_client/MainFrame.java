@@ -346,7 +346,9 @@ class MainFrame extends JFrame {
 
 		autoUpdater.addRegisters(registers);
 		for (RegisterCollectionConfig cfg : registerCollections.values()) {
-			autoUpdater.useRegistryHints(cfg.registerCollection, cfg.hintIntervalInMillis, cfg.timeoutInMillis);
+			if (cfg.hintSettings != null) {
+				autoUpdater.useRegistryHints(cfg.registerCollection, cfg.hintSettings);
+			}
 		}
 
 		gatewayRunning = true;

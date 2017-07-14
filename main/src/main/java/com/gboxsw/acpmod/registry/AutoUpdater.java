@@ -19,6 +19,79 @@ public class AutoUpdater {
 	private static final long MAX_THREAD_SLEEP = 100;
 
 	/**
+	 * Configuration of method for retrieving update hints.
+	 */
+	public final static class HintSettings {
+		/**
+		 * Time in milliseconds between two hint readings.
+		 */
+		private long interval;
+
+		/**
+		 * Timeout in milliseconds for completing a hint request.
+		 */
+		private long timeout;
+
+		/**
+		 * Returns time between two hint readings.
+		 * 
+		 * @return time in milliseconds.
+		 */
+		public long getInterval() {
+			return interval;
+		}
+
+		/**
+		 * Sets time between two hint readings.
+		 * 
+		 * @param interval
+		 *            time in milliseconds.
+		 */
+		public void setInterval(long interval) {
+			if (interval <= 0) {
+				throw new IllegalArgumentException("Interval must be a positive number.");
+			}
+
+			this.interval = interval;
+		}
+
+		/**
+		 * Returns time for completing a hint request.
+		 * 
+		 * @return time in milliseconds.
+		 */
+		public long getTimeout() {
+			return timeout;
+		}
+
+		/**
+		 * Sets time for completing a hint request.
+		 * 
+		 * @param timeout
+		 *            time in milliseconds.
+		 */
+		public void setTimeout(long timeout) {
+			if (interval <= 0) {
+				throw new IllegalArgumentException("Interval must be a positive number.");
+			}
+
+			this.timeout = timeout;
+		}
+
+		/**
+		 * Creates clone.
+		 * 
+		 * @return the clone.
+		 */
+		private HintSettings createClone() {
+			HintSettings result = new HintSettings();
+			result.timeout = timeout;
+			result.interval = interval;
+			return result;
+		}
+	}
+
+	/**
 	 * State record related to registers of a register collection.
 	 */
 	private static class CollectionState {
@@ -33,14 +106,10 @@ public class AutoUpdater {
 		long lastHintTime;
 
 		/**
-		 * Time in milliseconds between two hint readings.
+		 * Configuration of method for retrieving update hints or null, if use
+		 * of hints is disabled.
 		 */
-		long hintInterval;
-
-		/**
-		 * Timeout in milliseconds for completing the hint request.
-		 */
-		long hintOperationTimeout;
+		HintSettings hintSettings;
 
 		/**
 		 * Identifier of register that was notified as changed but is not
@@ -59,10 +128,9 @@ public class AutoUpdater {
 		 * @param collection
 		 *            the register collection.
 		 */
-		public CollectionState(RegisterCollection collection, long hintInterval, long hintTimeout) {
+		public CollectionState(RegisterCollection collection, HintSettings hintSettings) {
 			this.registerCollection = new WeakReference<RegisterCollection>(collection);
-			this.hintInterval = hintInterval;
-			this.hintOperationTimeout = hintTimeout;
+			this.hintSettings = hintSettings;
 			this.unconfirmedRegisterId = -1;
 			lastHintTime = MonotonicClock.INSTANCE.currentTimeMillis();
 		}
@@ -128,8 +196,8 @@ public class AutoUpdater {
 				// update
 				long now = MonotonicClock.INSTANCE.currentTimeMillis();
 				for (CollectionState cs : collectionStates.values()) {
-					if ((!cs.registers.isEmpty()) && (cs.hintInterval > 0)) {
-						long millisToUpdate = cs.hintInterval - (now - cs.lastHintTime);
+					if ((!cs.registers.isEmpty()) && (cs.hintSettings != null)) {
+						long millisToUpdate = cs.hintSettings.interval - (now - cs.lastHintTime);
 						if (millisToUpdate <= 0) {
 							collectionsWithExpiredHints.add(cs);
 						} else {
@@ -139,7 +207,7 @@ public class AutoUpdater {
 				}
 
 				// wait given amount of time if there are no expired registers
-				// or hint requests
+				// or pending hint requests
 				if (expiredRegisters.isEmpty() && collectionsWithExpiredHints.isEmpty()) {
 					try {
 						synchronized (lock) {
@@ -153,7 +221,7 @@ public class AutoUpdater {
 				}
 			}
 
-			// execute hint updates if necessary
+			// execute hint updates
 			for (CollectionState cs : collectionsWithExpiredHints) {
 				// retrieve timeout, id of unconfirmed register, and register
 				// collections
@@ -162,12 +230,16 @@ public class AutoUpdater {
 
 				RegisterCollection registerCollection;
 				synchronized (lock) {
-					operationTimeout = cs.hintOperationTimeout;
+					if (cs.hintSettings == null) {
+						continue;
+					}
+
+					operationTimeout = cs.hintSettings.timeout;
 					unconfirmedRegisterId = cs.unconfirmedRegisterId;
 					cs.unconfirmedRegisterId = -1;
 					registerCollection = cs.registerCollection.get();
 					if (registerCollection == null) {
-						cs.hintInterval = 0;
+						cs.hintSettings = null;
 						continue;
 					}
 				}
@@ -254,7 +326,7 @@ public class AutoUpdater {
 					RegisterCollection registerCollection = register.getRegisterCollection();
 					CollectionState collectionState = collectionStates.get(registerCollection);
 					if (collectionState == null) {
-						collectionState = new CollectionState(registerCollection, 0, 0);
+						collectionState = new CollectionState(registerCollection, null);
 						collectionStates.put(registerCollection, collectionState);
 					}
 
@@ -347,31 +419,29 @@ public class AutoUpdater {
 	}
 
 	/**
-	 * Sets time interval in milliseconds between readings of hint.
+	 * Enables and configures method for retrieving update hints.
 	 * 
 	 * @param registerCollection
 	 *            the remote collection of registers.
-	 * @param hintInterval
-	 *            the interval in milliseconds or zero to disable use of hints.
-	 * @param hintOperationTimeout
-	 *            the timeout in milliseconds for completing the hint request.
+	 * @param settings
+	 *            the settings.
 	 */
-	public void useRegistryHints(RegisterCollection registerCollection, long hintInterval, long hintOperationTimeout) {
+	public void useRegistryHints(RegisterCollection registerCollection, HintSettings settings) {
 		if (registerCollection == null) {
 			return;
 		}
 
-		hintInterval = Math.max(0, hintInterval);
-		hintOperationTimeout = Math.max(0, hintOperationTimeout);
+		if (settings == null) {
+			throw new NullPointerException("Hint settings cannot be null.");
+		}
 
 		synchronized (lock) {
 			CollectionState collectionState = collectionStates.get(registerCollection);
 			if (collectionState == null) {
-				collectionState = new CollectionState(registerCollection, hintInterval, hintOperationTimeout);
+				collectionState = new CollectionState(registerCollection, settings.createClone());
 				collectionStates.put(registerCollection, collectionState);
 			} else {
-				collectionState.hintInterval = hintInterval;
-				collectionState.hintOperationTimeout = hintOperationTimeout;
+				collectionState.hintSettings = settings.createClone();
 				collectionState.unconfirmedRegisterId = -1;
 			}
 
@@ -394,7 +464,7 @@ public class AutoUpdater {
 		synchronized (lock) {
 			CollectionState collectionState = collectionStates.get(registerCollection);
 			if (collectionState != null) {
-				collectionState.hintInterval = 0;
+				collectionState.hintSettings = null;
 				collectionState.unconfirmedRegisterId = -1;
 
 				if (collectionState.registers.isEmpty()) {

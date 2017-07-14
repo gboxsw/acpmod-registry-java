@@ -3,17 +3,17 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.gboxsw.acpmod.registry</groupId>
-	<artifactId>gui-client</artifactId>
+	<artifactId>console-client</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>gui-client</name>
+	<name>console-client</name>
 
 	<properties>
 		<maven.compiler.source>1.7</maven.compiler.source>
 		<maven.compiler.target>1.7</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<exec.mainClass>com.gboxsw.acpmod.registry.gui_client.App</exec.mainClass>
+		<exec.mainClass>com.gboxsw.acpmod.registry.console_client.App</exec.mainClass>
 	</properties>
 
 	<dependencies>
@@ -24,9 +24,9 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.miglayout</groupId>
-			<artifactId>miglayout</artifactId>
-			<version>3.7.4</version>
+			<groupId>com.gboxsw</groupId>
+			<artifactId>dataterm</artifactId>
+			<version>1.0.0</version>
 		</dependency>
 	</dependencies>
 
@@ -50,7 +50,7 @@
 								</transformer>
 							</transformers>
 							<minimizeJar>true</minimizeJar>
-							<finalName>regdt-gui</finalName>
+							<finalName>regdt</finalName>
 						</configuration>
 					</execution>
 				</executions>

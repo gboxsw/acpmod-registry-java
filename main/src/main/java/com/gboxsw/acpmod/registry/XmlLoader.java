@@ -7,6 +7,7 @@ import org.w3c.dom.*;
 
 import com.gboxsw.acpmod.gep.SerialPortSocket;
 import com.gboxsw.acpmod.gep.TCPSocket;
+import com.gboxsw.acpmod.registry.AutoUpdater.HintSettings;
 import com.gboxsw.acpmod.registry.Register.ConnectionSettings;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -72,17 +73,9 @@ public class XmlLoader {
 		public RegisterCollection registerCollection;
 
 		/**
-		 * Timeout in milliseconds for any communication operation. Zero or
-		 * negative value indicate use of default value.
+		 * Configuration of hint settings.
 		 */
-		public long timeoutInMillis;
-
-		/**
-		 * Time in milliseconds after which the last hints is expired and should
-		 * be updated. Zero or negative value indicate that usage of hints is
-		 * disabled.
-		 */
-		public long hintIntervalInMillis;
+		public HintSettings hintSettings;
 
 		/**
 		 * Map with all properties specified for given collection of registers.
@@ -365,12 +358,20 @@ public class XmlLoader {
 				if ((collections != null) && (!collectionId.isEmpty())) {
 					RegisterCollectionConfig info = new RegisterCollectionConfig();
 					info.registerCollection = registerCollection;
+
+					// configure registry hints
 					if (collectionProperties.containsKey("hints")) {
-						info.hintIntervalInMillis = Long.parseLong(collectionProperties.get("hints"));
+						HintSettings hintSettings = new HintSettings();
+						hintSettings.setInterval(Long.parseLong(collectionProperties.get("hints")));
+						if (collectionProperties.containsKey("timeout")) {
+							hintSettings.setTimeout(Long.parseLong(collectionProperties.get("timeout")));
+						} else {
+							hintSettings.setTimeout(Register.DEFAULT_CONNECTION_SETTINGS.timeout);
+						}
+
+						info.hintSettings = hintSettings;
 					}
-					if (collectionProperties.containsKey("timeout")) {
-						info.timeoutInMillis = Long.parseLong(collectionProperties.get("timeout"));
-					}
+
 					info.properties.putAll(collectionProperties);
 
 					if (collections.containsKey(collectionId)) {
