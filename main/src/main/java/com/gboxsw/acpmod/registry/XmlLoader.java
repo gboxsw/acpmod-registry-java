@@ -8,6 +8,7 @@ import org.w3c.dom.*;
 import com.gboxsw.acpmod.gep.SerialPortSocket;
 import com.gboxsw.acpmod.gep.TCPSocket;
 import com.gboxsw.acpmod.registry.AutoUpdater.HintSettings;
+import com.gboxsw.acpmod.registry.AutoUpdater.HintStrategy;
 import com.gboxsw.acpmod.registry.Register.ConnectionSettings;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -363,10 +364,30 @@ public class XmlLoader {
 					if (collectionProperties.containsKey("hints")) {
 						HintSettings hintSettings = new HintSettings();
 						hintSettings.setInterval(Long.parseLong(collectionProperties.get("hints")));
+
+						// handle timeout attribute
 						if (collectionProperties.containsKey("timeout")) {
 							hintSettings.setTimeout(Long.parseLong(collectionProperties.get("timeout")));
 						} else {
 							hintSettings.setTimeout(Register.DEFAULT_CONNECTION_SETTINGS.timeout);
+						}
+
+						// handle strategy attribute
+						if (collectionProperties.containsKey("strategy")) {
+							String strategyProperty = collectionProperties.get("strategy");
+							HintStrategy strategy = null;
+							for (HintStrategy value : HintStrategy.values()) {
+								if (value.toString().equalsIgnoreCase(strategyProperty)) {
+									strategy = value;
+									break;
+								}
+							}
+
+							if (strategy == null) {
+								throw new RuntimeException("Unknown/unsupported strategy: " + strategyProperty);
+							}
+
+							hintSettings.setStrategy(strategy);
 						}
 
 						info.hintSettings = hintSettings;
