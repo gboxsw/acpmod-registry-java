@@ -221,8 +221,7 @@ public final class Register {
 
 	/**
 	 * Updates value of the register. The method newer throws an exception as a
-	 * result of update (however, an exception can be thrown from change
-	 * listener).
+	 * result of update.
 	 */
 	public void updateValue() {
 		Object oldValue = value;
@@ -269,7 +268,11 @@ public final class Register {
 		}
 
 		if (listener != null) {
-			listener.onChange(this);
+			try {
+				listener.onChange(this);
+			} catch (Exception ignore) {
+				// exceptions in listener are ignored
+			}
 		}
 	}
 

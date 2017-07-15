@@ -19,21 +19,51 @@ public class AutoUpdater {
 	private static final long MAX_THREAD_SLEEP = 100;
 
 	/**
+	 * Strategy that determines when hint requests are generated.
+	 */
+	public static enum HintStrategy {
+		/**
+		 * Hint request are generated in fixed period.
+		 */
+		SIMPLE,
+
+		/**
+		 * Hint request are generated in fixed period, however, if the hint
+		 * response contains identifier of a managed register, new hint request
+		 * is generated as soon as possible.
+		 */
+		SEMI_GREEDY,
+
+		/**
+		 * Hint request are generated in fixed period, however, if the hint
+		 * response contains identifier of a register (eventually not managed by
+		 * the updater), new hint request is generated as soon as possible.
+		 */
+		GREEDY
+	}
+
+	/**
 	 * Configuration of method for retrieving update hints.
 	 */
 	public final static class HintSettings {
 		/**
-		 * Time in milliseconds between two hint readings.
+		 * Time in milliseconds between two hint readings (depending on
+		 * strategy).
 		 */
-		private long interval;
+		private long interval = 1000;
 
 		/**
 		 * Timeout in milliseconds for completing a hint request.
 		 */
-		private long timeout;
+		private long timeout = Register.DEFAULT_CONNECTION_SETTINGS.timeout;
 
 		/**
-		 * Returns time between two hint readings.
+		 * Strategy determining when hint requests are generated.
+		 */
+		private HintStrategy strategy = HintStrategy.SEMI_GREEDY;
+
+		/**
+		 * Returns time between two hint readings (depending on strategy).
 		 * 
 		 * @return time in milliseconds.
 		 */
@@ -42,7 +72,7 @@ public class AutoUpdater {
 		}
 
 		/**
-		 * Sets time between two hint readings.
+		 * Sets time between two hint readings (depending on strategy).
 		 * 
 		 * @param interval
 		 *            time in milliseconds.
@@ -76,6 +106,29 @@ public class AutoUpdater {
 			}
 
 			this.timeout = timeout;
+		}
+
+		/**
+		 * Returns the strategy when hint requests are generated.
+		 * 
+		 * @return the strategy.
+		 */
+		public HintStrategy getStrategy() {
+			return strategy;
+		}
+
+		/**
+		 * Sets the strategy when hint requests are generated.
+		 * 
+		 * @param strategy
+		 *            the desired strategy.
+		 */
+		public void setStrategy(HintStrategy strategy) {
+			if (strategy == null) {
+				throw new NullPointerException("Strategy cannot be null.");
+			}
+
+			this.strategy = strategy;
 		}
 
 		/**
@@ -274,10 +327,17 @@ public class AutoUpdater {
 						}
 					}
 
-					// time delay between hint readings is applied only if the
-					// hint was not useful
-					if (!hintForManagedRegister) {
+					// set hint time with respect to utilized strategy
+					if (cs.hintSettings.strategy == HintStrategy.SIMPLE) {
 						cs.lastHintTime = MonotonicClock.INSTANCE.currentTimeMillis();
+					} else if (cs.hintSettings.strategy == HintStrategy.SEMI_GREEDY) {
+						if (!hintForManagedRegister) {
+							cs.lastHintTime = MonotonicClock.INSTANCE.currentTimeMillis();
+						}
+					} else if (cs.hintSettings.strategy == HintStrategy.GREEDY) {
+						if (hintId < 0) {
+							cs.lastHintTime = MonotonicClock.INSTANCE.currentTimeMillis();
+						}
 					}
 				}
 			}
