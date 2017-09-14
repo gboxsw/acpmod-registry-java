@@ -140,6 +140,7 @@ public class AutoUpdater {
 			HintSettings result = new HintSettings();
 			result.timeout = timeout;
 			result.interval = interval;
+			result.strategy = strategy;
 			return result;
 		}
 	}
